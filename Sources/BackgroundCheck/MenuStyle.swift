@@ -1,18 +1,4 @@
-import AppKit
 import SwiftUI
-
-/// 시스템 메뉴와 같은 배경. 기본 창 배경은 투명도가 높아 뒤 창 색이 비친다.
-struct MenuMaterialBackground: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .menu
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
-}
 
 /// 메뉴 항목처럼 마우스를 올리면 둥근 하이라이트가 생기는 버튼
 struct MenuItemButtonStyle: ButtonStyle {
