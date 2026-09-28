@@ -125,7 +125,8 @@ SwiftPM으로 빌드하고 스크립트로 `.app` 번들을 만들어 `~/Applica
 - 행 클릭 → 펼침: 전체 명령어, 멤버 pid 목록, 버튼
   - `브라우저에서 열기` (포트 있을 때, 첫 포트로 `http://localhost:PORT`)
   - `Finder에서 보기`
-  - `항상 무시` (루트 명령어를 무시 목록에 추가)
+  - `항상 무시` (세션의 무시 키를 무시 목록에 추가. 무시 키 = 멤버 중 경로 인자가 있는 첫 dev 바이너리 명령어, 없으면 루트 명령어. `npm run dev`처럼 모든 프로젝트에 공통인 명령어가 무시 목록에 들어가지 않게 하기 위함)
+  - 무시 목록은 프로세스 단위(경계로 취급)와 세션 단위(멤버 중 하나라도 일치하면 세션 숨김) 둘 다 적용
 - ✕: 확인 없이 바로 종료, 종료 중에는 스피너
 - 모두 종료: 확인 대화상자 1회
 
@@ -163,7 +164,6 @@ background_check/
 │       ├── SessionRowView.swift
 │       └── SettingsView.swift
 ├── Tests/BackgroundCheckCoreTests/
-│   ├── Fixtures/                   # 실제 머신에서 뜬 ps/lsof 출력 샘플
 │   └── *.swift
 └── scripts/
     ├── build-app.sh                # release 빌드 → .app 조립 → ad-hoc 서명
@@ -193,7 +193,7 @@ background_check/
 - **단위 테스트 (Swift Testing, Core)**
   - `PsParser`: etime 형식(`MM:SS`, `HH:MM:SS`, `D-HH:MM:SS`), 공백 포함 명령어
   - `LsofParser`: `-F pn` 출력 → pid별 포트, IPv4/IPv6 중복 제거
-  - `DevProcessClassifier`: 픽스처 기반. Claude/VS Code helper, `~/.npm/_npx` MCP 서버, Adobe node, cwd가 `~/Devguru`인 `claude`·`vim`은 제외. astro/vite, Xcode python3의 `http.server`는 포함
+  - `DevProcessClassifier`: 실제 머신 출력을 본뜬 테스트 데이터(테스트 코드 안에 작성) 기반. Claude/VS Code helper, `~/.npm/_npx` MCP 서버, Adobe node, cwd가 `~/Devguru`인 `claude`·`vim`은 제외. astro/vite, Xcode python3의 `http.server`는 포함
   - `SessionGrouper`: `claude → zsh → npm → node → esbuild` 트리가 npm 루트 1개 세션으로(claude·zsh는 멤버 아님), 고아 astro가 단독 세션으로, 경계 규칙
     - esbuild처럼 dev 바이너리가 아닌 자손도 루트의 자손이면 멤버로 포함
   - `ToolNameResolver`, `ProjectNameResolver`: 대표 명령어별 기대값
