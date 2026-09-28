@@ -58,7 +58,7 @@ SwiftPM으로 빌드하고 스크립트로 `.app` 번들을 만들어 `~/Applica
   - (a) LISTEN 포트가 1개 이상
   - (b) cwd가 프로젝트 루트 중 하나의 하위 (기본 `~/Devguru`, 설정에서 여러 개)
 - **제외** (하나라도 해당하면 포함 조건을 무시)
-  - 실행 파일 경로가 `/System/` 또는 `/usr/libexec/`로 시작
+  - 실행 파일 경로가 `/System/`, `/usr/libexec/`, `~/Library/`로 시작 (`~/Library/`: Raycast 등 앱이 자체 번들한 node)
   - 실행 파일 basename이 dev 바이너리가 **아니면서** 경로에 `.app/Contents/`가 들어감 (Claude/VS Code/Discord helper, Adobe 등)
     - Xcode의 python3(`/Applications/Xcode.app/.../python3`)은 dev 바이너리라서 이 규칙에 걸리지 않음
   - 명령어에서 실행 파일 뒤 첫 경로 인자(스크립트 경로)에 `.app/Contents/`가 들어가거나, 그 인자가 `~/.npm/_npx/`, `~/Library/`, `~/.vscode/`, `~/.cursor/`로 시작 (npx로 뜬 MCP 서버, 에디터 확장 등)
@@ -126,6 +126,7 @@ SwiftPM으로 빌드하고 스크립트로 `.app` 번들을 만들어 `~/Applica
   - `브라우저에서 열기` (포트 있을 때, 첫 포트로 `http://localhost:PORT`)
   - `Finder에서 보기`
   - `항상 무시` (세션의 무시 키를 무시 목록에 추가. 무시 키 = 멤버 중 경로 인자가 있는 첫 dev 바이너리 명령어, 없으면 루트 명령어. `npm run dev`처럼 모든 프로젝트에 공통인 명령어가 무시 목록에 들어가지 않게 하기 위함)
+  - 멤버 중 하나라도 npx 캐시(`~/.npm/_npx/`)에서 실행 중이면 세션 숨김 (Claude Code가 `npm exec`로 띄운 MCP 서버. 부모 `npm exec`는 cwd가 프로젝트라 후보가 되기 때문)
   - 무시 목록은 프로세스 단위(경계로 취급)와 세션 단위(멤버 중 하나라도 일치하면 세션 숨김) 둘 다 적용
 - ✕: 확인 없이 바로 종료, 종료 중에는 스피너
 - 모두 종료: 확인 대화상자 1회

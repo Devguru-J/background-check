@@ -83,6 +83,23 @@ private func claudeTree(npmCwd: String = site) -> [RawProcess] {
         #expect(grouper().sessions(from: [claude, mcp]).isEmpty)
     }
 
+    @Test func npmExecSessionRunningFromNpxCacheIsHidden() {
+        // Claude Code가 띄운 MCP 서버: claude → npm exec (cwd=프로젝트) → node ~/.npm/_npx/...
+        let npmExec = RawProcess(pid: 400, ppid: 100, command: "npm exec @upstash/context7-mcp --api-key x",
+                                 executablePath: node, cwd: site)
+        let mcp = RawProcess(pid: 401, ppid: 400,
+                             command: "node /Users/me/.npm/_npx/eea2/node_modules/.bin/context7-mcp --api-key x",
+                             executablePath: node, cwd: site)
+        #expect(grouper().sessions(from: [claudeTree()[0], npmExec, mcp]).isEmpty)
+    }
+
+    @Test func npmExecOfLocalToolIsStillShown() {
+        let npmExec = RawProcess(pid: 410, ppid: 1, command: "npm exec vite", executablePath: node, cwd: site)
+        let vite = RawProcess(pid: 411, ppid: 410, command: "node \(site)/node_modules/.bin/vite",
+                              executablePath: node, cwd: site, ports: [5173])
+        #expect(grouper().sessions(from: [npmExec, vite]).map(\.rootPID) == [410])
+    }
+
     @Test func ignoringChildHidesWholeSession() {
         let sessions = grouper(ignore: ["site/node_modules/.bin/astro"]).sessions(from: claudeTree())
         #expect(sessions.isEmpty)

@@ -27,6 +27,13 @@ private func classifier(ignore: [String] = ScanSettings.defaultIgnorePatterns) -
         #expect(!c.isCandidate(system))
     }
 
+    @Test func runtimesBundledUnderUserLibraryAreExcluded() {
+        let raycast = RawProcess(pid: 13, ppid: 1, command: "Raycast Backend",
+            executablePath: "/Users/me/Library/Application Support/com.raycast.macos/node/runtime/node-v22.22.2-darwin-arm64/bin/node",
+            cwd: "/", ports: [7265])
+        #expect(!classifier().isCandidate(raycast))
+    }
+
     @Test func npxMcpServersAreExcluded() {
         let mcp = RawProcess(pid: 20, ppid: 19,
             command: "node /Users/me/.npm/_npx/eea2bd7412d4593b/node_modules/.bin/context7-mcp --api-key x",

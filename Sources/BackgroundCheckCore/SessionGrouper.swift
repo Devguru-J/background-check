@@ -65,6 +65,8 @@ public struct SessionGrouper: Sendable {
         let procs = memberPIDs.compactMap { byPID[$0] }
         guard let root = procs.first else { return nil }
         if procs.contains(where: { classifier.isIgnored(command: $0.command) }) { return nil }
+        // `npm exec <패키지>`의 부모 npm은 프로젝트 폴더에서 떠 있어 후보가 되지만, 실제 실행은 npx 캐시에서 한다
+        if procs.contains(where: classifier.runsFromNpxCache) { return nil }
 
         let project = projectNames.resolve(cwds: procs.compactMap(\.cwd))
         let ignoreKey = procs.first {

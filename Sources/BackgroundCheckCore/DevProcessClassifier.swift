@@ -33,6 +33,8 @@ public struct DevProcessClassifier: Sendable {
     public func isExcluded(_ p: RawProcess) -> Bool {
         let exe = Self.executable(of: p)
         if exe.hasPrefix("/System/") || exe.hasPrefix("/usr/libexec/") { return true }
+        // 앱이 자체 번들한 런타임 (예: Raycast의 ~/Library/Application Support/.../node)
+        if exe.hasPrefix(home + "/Library/") { return true }
         if !Self.isDevBinary(Self.basename(of: p)) && exe.contains(".app/Contents/") { return true }
         let args = Self.arguments(of: p)
         let excludedArgMarkers = [
@@ -45,6 +47,12 @@ public struct DevProcessClassifier: Sendable {
     /// 세션 루트를 찾아 부모를 따라 올라갈 때 멈추는 지점
     public func isBoundary(_ p: RawProcess) -> Bool {
         p.pid <= 1 || !Self.isDevBinary(Self.basename(of: p)) || isExcluded(p)
+    }
+
+    /// npx 캐시(~/.npm/_npx)에서 실행 중인지. npx/`npm exec`로 받아 띄운 MCP 서버 등.
+    public func runsFromNpxCache(_ p: RawProcess) -> Bool {
+        let marker = home + "/.npm/_npx/"
+        return Self.executable(of: p).contains(marker) || p.command.contains(marker)
     }
 
     public func isIgnored(command: String) -> Bool {
