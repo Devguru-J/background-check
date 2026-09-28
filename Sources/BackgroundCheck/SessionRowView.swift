@@ -11,63 +11,78 @@ struct SessionRowView: View {
     let onTerminate: () -> Void
     let onIgnore: () -> Void
 
+    @State private var isHovering = false
     private let home = NSHomeDirectory()
-    private var accent: Color { session.isStale ? .orange : .green }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 8) {
-                Circle().fill(accent).frame(width: 8, height: 8).padding(.top, 5)
-                VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(session.isStale ? Color.orange : Color.green)
+                    .frame(width: 7, height: 7)
+                VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
-                        Text(session.projectName).fontWeight(.semibold).lineLimit(1)
-                        Text(session.toolName).foregroundStyle(.secondary).lineLimit(1)
-                        Spacer(minLength: 4)
-                        if !session.ports.isEmpty {
-                            Text(session.ports.map { ":\($0)" }.joined(separator: " "))
-                                .monospacedDigit().foregroundStyle(.secondary)
-                        }
+                        Text(session.projectName).fontWeight(.medium).lineLimit(1)
+                        ForEach(session.ports.prefix(2), id: \.self) { PortBadge(port: $0) }
                     }
-                    HStack(spacing: 6) {
-                        Text(session.projectPath.map { PathDisplay.abbreviate($0, home: home) } ?? "—")
-                            .font(.caption).foregroundStyle(.secondary)
-                            .lineLimit(1).truncationMode(.middle)
-                        Spacer(minLength: 4)
-                        Text(UptimeFormatter.format(session.uptime))
-                            .font(.caption).monospacedDigit()
-                            .foregroundStyle(session.isStale ? Color.orange : Color.secondary)
-                    }
+                    subtitle
                     if let error {
                         Text(error).font(.caption).foregroundStyle(.red)
                     }
                 }
-                if isTerminating {
-                    ProgressView().controlSize(.small).frame(width: 16, height: 16)
-                } else {
-                    Button(action: onTerminate) {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("종료")
-                }
+                Spacer(minLength: 8)
+                trailing.frame(width: 18)
             }
             if isExpanded { details }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(isHovering || isExpanded ? 0.08 : 0)))
         .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
         .onTapGesture(perform: onToggle)
     }
 
+    private var subtitle: some View {
+        HStack(spacing: 0) {
+            Text(session.toolName)
+            Text(" · ")
+            Text(UptimeFormatter.format(session.uptime))
+                .foregroundStyle(session.isStale ? Color.orange : Color.secondary)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    @ViewBuilder private var trailing: some View {
+        if isTerminating {
+            ProgressView().controlSize(.small)
+        } else if isHovering {
+            Button(action: onTerminate) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("종료")
+        }
+    }
+
     private var details: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(session.projectPath.map { PathDisplay.abbreviate($0, home: home) } ?? "경로 알 수 없음")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
             Text(session.command)
-                .font(.caption.monospaced())
+                .font(.caption2.monospaced())
+                .foregroundStyle(.tertiary)
+                .lineLimit(2)
                 .textSelection(.enabled)
-                .lineLimit(3)
-            Text("PID " + session.memberPIDs.map(String.init).joined(separator: ", "))
-                .font(.caption).foregroundStyle(.secondary)
-            HStack {
+            HStack(spacing: 14) {
                 if let port = session.ports.first, let url = URL(string: "http://localhost:\(port)") {
                     Button("브라우저에서 열기") { NSWorkspace.shared.open(url) }
                 }
@@ -77,7 +92,8 @@ struct SessionRowView: View {
                 Spacer()
                 Button("항상 무시", action: onIgnore)
             }
-            .controlSize(.small)
+            .buttonStyle(InlineActionButtonStyle())
+            .padding(.top, 2)
         }
         .padding(.leading, 16)
     }

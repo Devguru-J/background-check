@@ -12,72 +12,103 @@ struct MenuPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .padding(.bottom, 4)
+            if model.sessions.isEmpty { emptyState } else { list }
             Divider()
-            if model.sessions.isEmpty {
-                Text("켜진 dev 서버 없음 ✓")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-            } else {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(model.sessions) { session in
-                            SessionRowView(
-                                session: session,
-                                isExpanded: expanded == session.id,
-                                isTerminating: model.terminating.contains(session.id),
-                                error: model.terminateErrors[session.id],
-                                onToggle: { expanded = expanded == session.id ? nil : session.id },
-                                onTerminate: { Task { await model.terminate(session) } },
-                                onIgnore: { model.ignore(session) })
-                            Divider().padding(.leading, 28)
-                        }
-                    }
-                    .background(GeometryReader { proxy in
-                        Color.clear.preference(key: ListHeightKey.self, value: proxy.size.height)
-                    })
-                }
-                .frame(height: min(max(listHeight, 1), 420))
-                .onPreferenceChange(ListHeightKey.self) { listHeight = $0 }
-            }
-            Divider()
+                .padding(.horizontal, 14)
+                .padding(.vertical, 5)
             footer
+                .padding(.horizontal, 5)
+                .padding(.bottom, 6)
         }
-        .frame(width: 360)
+        .frame(width: 320)
+        .background(MenuMaterialBackground())
         .background(WindowKeyObserver { model.isPanelOpen = $0 })
     }
 
     private var header: some View {
-        HStack {
-            Text("Background Check").font(.headline)
+        HStack(spacing: 5) {
+            Text("개발 서버")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            if !model.sessions.isEmpty {
+                Text(verbatim: "\(model.sessions.count)")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.tertiary)
+            }
             Spacer()
             if model.scanFailed {
                 Text("스캔 실패").font(.caption).foregroundStyle(.red)
             }
-            Button { Task { await model.scan() } } label: { Image(systemName: "arrow.clockwise") }
-                .buttonStyle(.borderless)
-                .help("새로고침")
+            Button { Task { await model.scan() } } label: {
+                Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("새로고침")
         }
-        .padding(12)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 22, weight: .light))
+                .foregroundStyle(.green)
+            Text("켜진 개발 서버가 없어요")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+    }
+
+    private var list: some View {
+        ScrollView {
+            VStack(spacing: 1) {
+                ForEach(model.sessions) { session in
+                    SessionRowView(
+                        session: session,
+                        isExpanded: expanded == session.id,
+                        isTerminating: model.terminating.contains(session.id),
+                        error: model.terminateErrors[session.id],
+                        onToggle: { expanded = expanded == session.id ? nil : session.id },
+                        onTerminate: { Task { await model.terminate(session) } },
+                        onIgnore: { model.ignore(session) })
+                }
+            }
+            .padding(.horizontal, 5)
+            .background(GeometryReader { proxy in
+                Color.clear.preference(key: ListHeightKey.self, value: proxy.size.height)
+            })
+        }
+        .frame(height: min(max(listHeight, 1), 420))
+        .onPreferenceChange(ListHeightKey.self) { listHeight = $0 }
     }
 
     private var footer: some View {
-        HStack {
-            Button("모두 종료", action: confirmTerminateAll)
+        VStack(spacing: 0) {
+            Button(action: confirmTerminateAll) { MenuItemLabel("모두 종료") }
                 .disabled(model.sessions.isEmpty)
-            Spacer()
-            Button("설정…") {
+            Button {
                 NSApp.activate()
                 openSettings()
+            } label: {
+                MenuItemLabel("설정…", shortcut: "⌘,")
             }
-            Button("종료") { NSApp.terminate(nil) }
+            .keyboardShortcut(",")
+            Button { NSApp.terminate(nil) } label: {
+                MenuItemLabel("Background Check 종료", shortcut: "⌘Q")
+            }
+            .keyboardShortcut("q")
         }
-        .padding(12)
+        .buttonStyle(MenuItemButtonStyle())
     }
 
     private func confirmTerminateAll() {
         let alert = NSAlert()
-        alert.messageText = "dev 서버 \(model.sessions.count)개를 모두 종료할까요?"
+        alert.messageText = "개발 서버 \(model.sessions.count)개를 모두 종료할까요?"
         alert.addButton(withTitle: "모두 종료")
         alert.addButton(withTitle: "취소")
         NSApp.activate()

@@ -3,7 +3,7 @@ import Testing
 
 @Suite struct FormattingTests {
     static let uptimeCases: [(Double, String)] = [
-        (30, "<1m"), (720, "12m"), (8040, "2h 14m"), (97200, "1d 3h"), (3600, "1h 0m"),
+        (30, "방금"), (720, "12분"), (8040, "2시간 14분"), (97200, "1일 3시간"), (3600, "1시간"), (86400, "1일"),
     ]
 
     @Test(arguments: uptimeCases)
