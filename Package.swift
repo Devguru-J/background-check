@@ -6,6 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     targets: [
         .target(name: "BackgroundCheckCore"),
+        .executableTarget(name: "BackgroundCheck", dependencies: ["BackgroundCheckCore"]),
         .testTarget(name: "BackgroundCheckCoreTests", dependencies: ["BackgroundCheckCore"]),
     ],
     swiftLanguageModes: [.v5]
