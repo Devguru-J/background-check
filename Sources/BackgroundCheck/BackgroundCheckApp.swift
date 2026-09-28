@@ -5,8 +5,15 @@ struct BackgroundCheckApp: App {
     @State private var model = AppModel()
 
     var body: some Scene {
-        MenuBarExtra("Background Check", systemImage: "circle.inset.filled") {
-            Text("세션 \(model.sessions.count)개")
+        MenuBarExtra {
+            MenuPanelView(model: model)
+        } label: {
+            MenuBarLabel(count: model.sessions.count, hasStale: model.staleCount > 0)
+        }
+        .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView(model: model)
         }
     }
 }
