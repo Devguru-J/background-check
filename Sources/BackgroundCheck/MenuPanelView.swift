@@ -6,6 +6,8 @@ struct MenuPanelView: View {
     let model: AppModel
     @Environment(\.openSettings) private var openSettings
     @State private var expanded: Int32?
+    /// ScrollView는 기본 높이가 없어 MenuBarExtra 창에서 0으로 접히므로, 목록 높이를 재서 직접 지정한다
+    @State private var listHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,8 +33,12 @@ struct MenuPanelView: View {
                             Divider().padding(.leading, 28)
                         }
                     }
+                    .background(GeometryReader { proxy in
+                        Color.clear.preference(key: ListHeightKey.self, value: proxy.size.height)
+                    })
                 }
-                .frame(maxHeight: 420)
+                .frame(height: min(max(listHeight, 1), 420))
+                .onPreferenceChange(ListHeightKey.self) { listHeight = $0 }
             }
             Divider()
             footer
@@ -79,4 +85,9 @@ struct MenuPanelView: View {
             Task { await model.terminateAll() }
         }
     }
+}
+
+private struct ListHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
