@@ -8,6 +8,10 @@ public struct DevProcessClassifier: Sendable {
     ]
     public static let packageManagers: Set<String> = ["npm", "npx", "pnpm", "yarn", "bunx"]
     public static let shells: Set<String> = ["sh", "bash", "zsh", "dash", "fish"]
+    static let agentNames: Set<String> = ["claude", "codex"]
+    static let agentMarkers = [
+        "/claude/versions/", "@anthropic-ai/claude-code", "@openai/codex", "/Claude.app/Contents/", "/ChatGPT.app/Contents/",
+    ]
 
     public let settings: ScanSettings
     public let home: String
@@ -31,11 +35,13 @@ public struct DevProcessClassifier: Sendable {
     }
 
     public func isExcluded(_ p: RawProcess) -> Bool {
+        if isAgent(p) { return true }
         let exe = Self.executable(of: p)
         if exe.hasPrefix("/System/") || exe.hasPrefix("/usr/libexec/") { return true }
         // 앱이 자체 번들한 런타임 (예: Raycast의 ~/Library/Application Support/.../node)
         if exe.hasPrefix(home + "/Library/") { return true }
-        if !Self.isDevBinary(Self.basename(of: p)) && exe.contains(".app/Contents/") { return true }
+        // 앱 번들 안의 프로세스는 helper로 본다. 번들 런타임(JetBrains java, 앱 내장 node)도 포함하되 Xcode·Python 프레임워크는 허용
+        if exe.contains(".app/Contents/") && !Self.isAllowedBundledRuntime(exe) { return true }
         let args = Self.arguments(of: p)
         let excludedArgMarkers = [
             ".app/Contents/", home + "/.npm/_npx/", home + "/Library/", home + "/.vscode/", home + "/.cursor/",
@@ -55,6 +61,15 @@ public struct DevProcessClassifier: Sendable {
         return Self.executable(of: p).contains(marker) || p.command.contains(marker)
     }
 
+    /// 코딩 에이전트 자체. 무시 목록(사용자가 지울 수 있음)과 무관하게 항상 제외·경계로 취급한다.
+    public func isAgent(_ p: RawProcess) -> Bool {
+        let exe = Self.executable(of: p)
+        if Self.agentMarkers.contains(where: { exe.contains($0) || p.command.contains($0) }) { return true }
+        // "claude" (프로세스 제목), "node /opt/homebrew/bin/claude" (npm 설치의 bin 링크)
+        let leading = p.command.split(separator: " ").prefix(2).map { (String($0) as NSString).lastPathComponent }
+        return leading.contains { Self.agentNames.contains($0) }
+    }
+
     public func isIgnored(command: String) -> Bool {
         settings.ignorePatterns.contains { !$0.isEmpty && command.contains($0) }
     }
@@ -62,6 +77,10 @@ public struct DevProcessClassifier: Sendable {
     public func projectRoot(containing path: String?) -> String? {
         guard let path else { return nil }
         return settings.projectRoots.first { path == $0 || path.hasPrefix($0 + "/") }
+    }
+
+    static func isAllowedBundledRuntime(_ exe: String) -> Bool {
+        exe.hasPrefix("/Applications/Xcode.app/") || exe.contains("/Python.framework/") || exe.contains("/Python3.framework/")
     }
 
     static func executable(of p: RawProcess) -> String {

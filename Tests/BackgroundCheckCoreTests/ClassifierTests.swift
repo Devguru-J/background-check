@@ -27,6 +27,35 @@ private func classifier(ignore: [String] = ScanSettings.defaultIgnorePatterns) -
         #expect(!c.isCandidate(system))
     }
 
+    @Test func npmInstalledAgentsAreNeverCandidatesEvenWithEmptyIgnoreList() {
+        // ps에 실제로 보이는 형태: 프로세스 제목 "claude", 또는 bin 심볼릭 링크 경로
+        let titled = RawProcess(pid: 70, ppid: 69, command: "claude", executablePath: node, cwd: "/Users/me/Devguru/site")
+        let viaBin = RawProcess(pid: 71, ppid: 69, command: "node /opt/homebrew/bin/claude",
+                                executablePath: node, cwd: "/Users/me/Devguru/site")
+        let codex = RawProcess(pid: 72, ppid: 69, command: "node /opt/homebrew/bin/codex app-server",
+                               executablePath: node, cwd: "/Users/me/Devguru/site", ports: [8123])
+        let c = classifier(ignore: [])
+        for p in [titled, viaBin, codex] {
+            #expect(!c.isCandidate(p), "\(p.command)")
+            #expect(c.isBoundary(p), "\(p.command)")
+            #expect(c.isAgent(p), "\(p.command)")
+        }
+    }
+
+    @Test func appBundledRuntimesWithPortsAreExcluded() {
+        let bundledNode = RawProcess(pid: 80, ppid: 1, command: "node server.js",
+            executablePath: "/Applications/Foo.app/Contents/Resources/node", cwd: "/", ports: [3000])
+        let jetbrainsJava = RawProcess(pid: 81, ppid: 1, command: "java -Xmx2g GradleDaemon",
+            executablePath: "/Applications/IntelliJ IDEA.app/Contents/jbr/Contents/Home/bin/java", cwd: "/", ports: [51234])
+        let brewPython = RawProcess(pid: 82, ppid: 1, command: "python3 -m http.server",
+            executablePath: "/opt/homebrew/Cellar/python@3.14/3.14.7/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python",
+            cwd: "/Users/me", ports: [8000])
+        let c = classifier()
+        #expect(!c.isCandidate(bundledNode))
+        #expect(!c.isCandidate(jetbrainsJava))
+        #expect(c.isCandidate(brewPython))
+    }
+
     @Test func runtimesBundledUnderUserLibraryAreExcluded() {
         let raycast = RawProcess(pid: 13, ppid: 1, command: "Raycast Backend",
             executablePath: "/Users/me/Library/Application Support/com.raycast.macos/node/runtime/node-v22.22.2-darwin-arm64/bin/node",

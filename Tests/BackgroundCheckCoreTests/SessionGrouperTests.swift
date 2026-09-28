@@ -100,6 +100,27 @@ private func claudeTree(npmCwd: String = site) -> [RawProcess] {
         #expect(grouper().sessions(from: [npmExec, vite]).map(\.rootPID) == [410])
     }
 
+    @Test func npmInstalledClaudeIsNeverAbsorbedIntoSession() {
+        var tree = claudeTree()
+        tree[0] = RawProcess(pid: 100, ppid: 50, elapsed: 9000, command: "claude", executablePath: node, cwd: site)
+        let sessions = grouper(ignore: []).sessions(from: tree)
+        #expect(sessions.map(\.rootPID) == [102])
+        #expect(!sessions.contains { $0.memberPIDs.contains(100) || $0.memberPIDs.contains(101) })
+    }
+
+    @Test func mcpServersStartedDirectlyByAgentsAreHidden() {
+        let claude = claudeTree()[0]
+        let globalMcp = RawProcess(pid: 500, ppid: 100, command: "node /opt/homebrew/bin/mcp-server-filesystem /Users/me",
+                                   executablePath: node, cwd: site)
+        let uvxMcp = RawProcess(pid: 501, ppid: 100, command: "python /Users/me/.cache/uv/archive-v0/x/bin/mcp-server-git",
+                                executablePath: "/usr/local/bin/python3", cwd: site, ports: [9100])
+        let desktop = RawProcess(pid: 510, ppid: 1, command: "/Applications/Claude.app/Contents/MacOS/Claude",
+                                 executablePath: "/Applications/Claude.app/Contents/MacOS/Claude", cwd: "/")
+        let desktopMcp = RawProcess(pid: 511, ppid: 510, command: "node /opt/homebrew/bin/some-mcp",
+                                    executablePath: node, cwd: site, ports: [9200])
+        #expect(grouper().sessions(from: [claude, globalMcp, uvxMcp, desktop, desktopMcp]).isEmpty)
+    }
+
     @Test func ignoringChildHidesWholeSession() {
         let sessions = grouper(ignore: ["site/node_modules/.bin/astro"]).sessions(from: claudeTree())
         #expect(sessions.isEmpty)

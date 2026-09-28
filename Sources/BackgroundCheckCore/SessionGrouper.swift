@@ -15,8 +15,10 @@ public struct SessionGrouper: Sendable {
 
         var roots: [Int32] = []
         for p in processes where classifier.isCandidate(p) {
-            let root = climb(from: p, byPID: byPID).pid
-            if !roots.contains(root) { roots.append(root) }
+            let root = climb(from: p, byPID: byPID)
+            // 에이전트가 셸을 거치지 않고 직접 띄운 프로세스는 MCP 서버다 (Bash 도구로 띄운 dev 서버는 셸을 거친다)
+            if let parent = byPID[root.ppid], classifier.isAgent(parent) { continue }
+            if !roots.contains(root.pid) { roots.append(root.pid) }
         }
         let memberLists = roots.map { members(of: $0, children: children) }
 
