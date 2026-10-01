@@ -135,3 +135,21 @@ private func claudeTree(npmCwd: String = site) -> [RawProcess] {
         #expect(SessionMatcher.fresh(s, in: []) == nil)
     }
 }
+
+@Suite struct SessionPortTests {
+    /// astro dev --port 3000 + Node 인스펙터(9229) + workerd 루프백(임시 포트 54893)
+    @Test func hidesInspectorAndEphemeralPorts() {
+        let astro = RawProcess(pid: 400, ppid: 1, elapsed: 100,
+                               command: "node \(site)/node_modules/astro/bin/astro.mjs dev --port 3000",
+                               executablePath: node, cwd: site, ports: [3000, 9229, 54893])
+        let sessions = grouper().sessions(from: [astro])
+        #expect(sessions.map(\.ports) == [[3000]])
+    }
+
+    @Test func keepsDevPortsWhenOnlyInternalOnesWouldRemain() {
+        let inspectOnly = RawProcess(pid: 401, ppid: 1, elapsed: 100, command: "node --inspect server.js",
+                                     executablePath: node, cwd: site, ports: [9229])
+        let sessions = grouper().sessions(from: [inspectOnly])
+        #expect(sessions.map(\.ports) == [[]])
+    }
+}

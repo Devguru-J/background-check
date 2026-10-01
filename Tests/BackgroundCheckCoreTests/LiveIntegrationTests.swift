@@ -24,9 +24,12 @@ private func realPath(_ url: URL) -> URL {
         const { spawn } = require('child_process');
         const http = require('http');
         spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
-        const server = http.createServer((q, s) => s.end('ok')).listen(0, '127.0.0.1', () => {
-          console.log('PORT ' + server.address().port);
-        });
+        // 포트 0은 macOS 임시 대역(49152+)을 주는데, 앱은 그 대역을 내부 포트로 보고 숨기므로 dev 서버처럼 고정 대역에서 고른다
+        const server = http.createServer((q, s) => s.end('ok'));
+        const tryListen = () => server.listen(20000 + Math.floor(Math.random() * 20000), '127.0.0.1');
+        server.on('error', tryListen);
+        server.on('listening', () => console.log('PORT ' + server.address().port));
+        tryListen();
         """.write(to: dir.appendingPathComponent("server.js"), atomically: true, encoding: .utf8)
 
         let process = Process()

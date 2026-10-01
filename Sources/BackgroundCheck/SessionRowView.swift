@@ -82,7 +82,7 @@ struct SessionRowView: View {
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
                 .textSelection(.enabled)
-            HStack(spacing: 14) {
+            HStack(spacing: 6) {
                 if let port = session.ports.first, let url = URL(string: "http://localhost:\(port)") {
                     Button("브라우저에서 열기") { NSWorkspace.shared.open(url) }
                 }
@@ -93,7 +93,7 @@ struct SessionRowView: View {
                 Button("항상 무시", action: onIgnore)
             }
             .buttonStyle(InlineActionButtonStyle())
-            .padding(.top, 2)
+            .padding(.top, 3)
         }
         .padding(.leading, 16)
     }
