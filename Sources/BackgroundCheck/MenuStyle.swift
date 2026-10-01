@@ -46,14 +46,27 @@ struct MenuItemLabel: View {
     }
 }
 
-/// 펼친 행 안의 작은 텍스트 버튼
+/// 펼친 행 안의 작은 캡슐 버튼. 메뉴 재질 위에서 강조색 글자는 잘 안 읽혀서 본문색 글자 + 옅은 배경을 쓴다
 struct InlineActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.caption.weight(.medium))
-            .foregroundStyle(Color.accentColor)
-            .opacity(configuration.isPressed ? 0.6 : 1)
-            .contentShape(Rectangle())
+        InlineActionBody(configuration: configuration)
+    }
+
+    private struct InlineActionBody: View {
+        let configuration: Configuration
+        @State private var isHovering = false
+
+        var body: some View {
+            configuration.label
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule().fill(Color.primary.opacity(configuration.isPressed ? 0.22 : (isHovering ? 0.16 : 0.1))))
+                .contentShape(Capsule())
+                .onHover { isHovering = $0 }
+        }
     }
 }
 

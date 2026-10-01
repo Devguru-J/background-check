@@ -85,8 +85,19 @@ public struct SessionGrouper: Sendable {
                                                fallback: DevProcessClassifier.basename(of: root)),
             projectName: project.name,
             projectPath: project.path,
-            ports: Array(Set(procs.flatMap(\.ports))).sorted(),
+            ports: Array(Set(procs.flatMap(\.ports))).filter(PortFilter.isUserFacing).sorted(),
             uptime: root.elapsed,
             isStale: root.elapsed >= classifier.settings.staleHours * 3600)
+    }
+}
+
+public enum PortFilter {
+    /// Node `--inspect` 기본 포트 대역. astro·next 등이 디버거용으로 같이 연다
+    static let inspectorRange = 9229...9239
+    /// macOS 임시 포트. workerd 루프백·HMR 보조 소켓처럼 사용자가 열 일이 없는 포트
+    static let ephemeralStart = 49152
+
+    public static func isUserFacing(_ port: Int) -> Bool {
+        !inspectorRange.contains(port) && port < ephemeralStart
     }
 }
