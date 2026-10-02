@@ -8,6 +8,7 @@ struct MenuPanelView: View {
     @State private var expanded: Int32?
     /// ScrollView는 기본 높이가 없어 MenuBarExtra 창에서 0으로 접히므로, 목록 높이를 재서 직접 지정한다
     @State private var listHeight: CGFloat = 0
+    @State private var panelHeight: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,6 +25,12 @@ struct MenuPanelView: View {
                 .padding(.bottom, 6)
         }
         .frame(width: 320)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(GeometryReader { proxy in
+            Color.clear.preference(key: PanelHeightKey.self, value: proxy.size.height)
+        })
+        .onPreferenceChange(PanelHeightKey.self) { panelHeight = $0 }
+        .background(WindowHeightFitter(height: panelHeight))
         .background(MenuMaterialBackground())
         .background(WindowKeyObserver { model.isPanelOpen = $0 })
     }
@@ -119,6 +126,11 @@ struct MenuPanelView: View {
 }
 
 private struct ListHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct PanelHeightKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
 }
